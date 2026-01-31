@@ -1,0 +1,2529 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能客户管理系统 v2.0 - CELN模型 + 探需九问</title>
+    <!-- SheetJS for Excel parsing -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            font-size: 32px;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 14px;
+            opacity: 0.95;
+        }
+
+        /* 角色切换器 */
+        .role-switcher {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .role-btn {
+            padding: 12px 30px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.4);
+            border-radius: 25px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            backdrop-filter: blur(10px);
+        }
+
+        .role-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: rgba(255, 255, 255, 0.6);
+            transform: translateY(-2px);
+        }
+
+        .role-btn.active {
+            background: white;
+            color: #667eea;
+            border-color: white;
+            box-shadow: 0 4px 15px rgba(255, 255, 255, 0.3);
+        }
+
+        /* 页面容器 */
+        .page {
+            display: none;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 500px 1fr;
+            gap: 20px;
+            align-items: start;
+        }
+
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+        }
+
+        .card h2 {
+            font-size: 20px;
+            color: #333;
+            margin-bottom: 18px;
+            display: flex;
+            align-items: center;
+            font-weight: 600;
+        }
+
+        .card h2::before {
+            content: '';
+            width: 4px;
+            height: 22px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin-right: 10px;
+            border-radius: 2px;
+        }
+
+        .input-section {
+            position: sticky;
+            top: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e8e8e8;
+            border-radius: 10px;
+            font-size: 14px;
+            line-height: 1.6;
+            font-family: inherit;
+            resize: vertical;
+            min-height: 260px;
+            transition: all 0.3s;
+        }
+
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .hint {
+            font-size: 12px;
+            color: #999;
+            margin-top: 8px;
+            line-height: 1.5;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: #f5f5f5;
+            color: #666;
+            box-shadow: none;
+            margin-top: 10px;
+        }
+
+        .btn-secondary:hover {
+            background: #e8e8e8;
+            box-shadow: none;
+        }
+
+        .result-section {
+            margin-bottom: 20px;
+        }
+
+        .result-section h3 {
+            font-size: 17px;
+            color: #333;
+            margin-bottom: 12px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+        }
+
+        /* CELN标签 */
+        .celn-tags {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-bottom: 18px;
+        }
+
+        .celn-tag {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            padding: 14px;
+            border-radius: 12px;
+            text-align: center;
+            transition: all 0.3s;
+        }
+
+        .celn-tag:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .celn-tag .dimension {
+            font-size: 24px;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 4px;
+        }
+
+        .celn-tag .name {
+            font-size: 11px;
+            color: #666;
+            margin-bottom: 6px;
+        }
+
+        .celn-tag .value {
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .celn-tag.high {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+
+        .celn-tag.high .dimension,
+        .celn-tag.high .name,
+        .celn-tag.high .value {
+            color: white;
+        }
+
+        .celn-tag.medium {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+        }
+
+        .celn-tag.medium .dimension,
+        .celn-tag.medium .name,
+        .celn-tag.medium .value {
+            color: white;
+        }
+
+        /* 探需九问 + 关键词结合展示 */
+        .probe-grid {
+            display: grid;
+            gap: 10px;
+        }
+
+        .probe-item {
+            background: #f8f9fa;
+            padding: 12px 14px;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .probe-item.incomplete {
+            border-left-color: #ff6b6b;
+            background: #fff5f5;
+        }
+
+        .probe-item.partial {
+            border-left-color: #ffa500;
+            background: #fff8e6;
+        }
+
+        .probe-item .question-label {
+            font-size: 13px;
+            color: #667eea;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .probe-item.incomplete .question-label {
+            color: #ff6b6b;
+        }
+
+        .probe-item.partial .question-label {
+            color: #ffa500;
+        }
+
+        .probe-item .answer {
+            font-size: 13px;
+            color: #333;
+            line-height: 1.5;
+            flex: 1;
+        }
+
+        .probe-item .status-badge {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            white-space: nowrap;
+            margin-left: 10px;
+        }
+
+        .probe-item .status-badge.complete {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .probe-item .status-badge.incomplete {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .probe-item .status-badge.partial {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        /* 话术推荐 */
+        .script-box {
+            background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+            padding: 16px;
+            border-radius: 12px;
+            margin-bottom: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        .script-box h4 {
+            font-size: 15px;
+            color: #333;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .script-box p {
+            font-size: 13px;
+            color: #333;
+            line-height: 1.8;
+        }
+
+        .script-box.probing {
+            background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+        }
+
+        .script-box.closing {
+            background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+        }
+
+        .script-box.objection_handling {
+            background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 50px 20px;
+            color: #999;
+        }
+
+        .empty-state .icon {
+            font-size: 56px;
+            margin-bottom: 14px;
+        }
+
+        .empty-state p {
+            font-size: 14px;
+        }
+
+        .key-points {
+            background: #f0f7ff;
+            padding: 14px;
+            border-radius: 10px;
+            margin-top: 14px;
+        }
+
+        .key-points h4 {
+            font-size: 13px;
+            color: #667eea;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .key-points ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .key-points li {
+            font-size: 12px;
+            color: #333;
+            line-height: 1.8;
+            padding-left: 16px;
+            position: relative;
+        }
+
+        .key-points li::before {
+            content: '✓';
+            position: absolute;
+            left: 0;
+            color: #667eea;
+            font-weight: bold;
+        }
+
+        .example-box {
+            background: #fff9e6;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 14px;
+            border-left: 3px solid #faad14;
+        }
+
+        .example-box .title {
+            font-size: 12px;
+            color: #faad14;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        .example-box .content {
+            font-size: 12px;
+            color: #666;
+            line-height: 1.6;
+        }
+
+        /* 店长页面样式 */
+        .upload-area {
+            border: 2px dashed #667eea;
+            border-radius: 12px;
+            padding: 40px;
+            text-align: center;
+            background: #f8f9ff;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 25px;
+        }
+
+        .upload-area:hover {
+            border-color: #764ba2;
+            background: #f0f2ff;
+        }
+
+        .upload-area.drag-over {
+            border-color: #764ba2;
+            background: #e8ebff;
+        }
+
+        .upload-area .icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+        }
+
+        .upload-area p {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 8px;
+        }
+
+        .upload-area .hint {
+            font-size: 12px;
+            color: #999;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        /* 统计卡片 */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            text-align: center;
+        }
+
+        .stat-card h3 {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        .stat-card .value {
+            font-size: 32px;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 6px;
+        }
+
+        .stat-card .subtext {
+            font-size: 12px;
+            color: #999;
+        }
+
+        /* 探需完成度条 */
+        .probe-bar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .probe-bar .label {
+            font-size: 12px;
+            color: #666;
+            min-width: 120px;
+        }
+
+        .probe-bar .bar-container {
+            flex: 1;
+            height: 20px;
+            background: #f0f0f0;
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .probe-bar .bar-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 8px;
+        }
+
+        .probe-bar .bar-fill.low {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
+        }
+
+        .probe-bar .bar-fill.medium {
+            background: linear-gradient(135deg, #ffa500 0%, #ff8c00 100%);
+        }
+
+        .probe-bar .percentage {
+            font-size: 11px;
+            color: white;
+            font-weight: 600;
+        }
+
+        /* 专家列表 */
+        .expert-list {
+            display: grid;
+            gap: 20px;
+        }
+
+        .expert-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        .expert-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .expert-header:hover {
+            background: #f8f9ff;
+            margin: -5px -10px 15px -10px;
+            padding: 5px 10px 20px 10px;
+            border-radius: 8px;
+        }
+
+        .expert-name {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .expand-icon {
+            font-size: 14px;
+            color: #667eea;
+            transition: transform 0.3s;
+        }
+
+        .expand-icon.expanded {
+            transform: rotate(90deg);
+        }
+
+        .expert-stats {
+            display: flex;
+            gap: 20px;
+            font-size: 13px;
+            color: #666;
+        }
+
+        .expert-stats span {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .expert-details {
+            display: none;
+            animation: slideDown 0.3s ease-out;
+        }
+
+        .expert-details.show {
+            display: block;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .weakness-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .weakness-item {
+            background: #fff5f5;
+            padding: 10px;
+            border-radius: 8px;
+            border-left: 3px solid #ff6b6b;
+            font-size: 12px;
+        }
+
+        .weakness-item .label {
+            color: #d32f2f;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .weakness-item .count {
+            color: #666;
+            font-size: 11px;
+        }
+
+        .customer-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        .customer-table th {
+            background: #f8f9fa;
+            padding: 10px;
+            text-align: left;
+            font-size: 12px;
+            color: #666;
+            font-weight: 600;
+            border-bottom: 2px solid #e8e8e8;
+        }
+
+        .customer-table td {
+            padding: 10px;
+            font-size: 12px;
+            color: #333;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .customer-table tr:hover {
+            background: #f8f9ff;
+        }
+
+        .issue-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-right: 4px;
+            margin-bottom: 4px;
+        }
+
+        .issue-badge.critical {
+            background: #ffe5e5;
+            color: #d32f2f;
+        }
+
+        .issue-badge.warning {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+
+        .level-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .level-badge.A {
+            background: #ffe5e5;
+            color: #d32f2f;
+        }
+
+        .level-badge.B {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+
+        .level-badge.C {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .level-badge.FC {
+            background: #f3e5f5;
+            color: #7b1fa2;
+        }
+
+        .level-badge.长期 {
+            background: #e8f5e9;
+            color: #388e3c;
+        }
+
+        .level-badge.已战败 {
+            background: #fafafa;
+            color: #757575;
+        }
+
+        .level-badge.已锁单 {
+            background: #fff9c4;
+            color: #f57f17;
+        }
+
+        .level-badge.其他 {
+            background: #f5f5f5;
+            color: #616161;
+        }
+
+        @media (max-width: 1200px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .input-section {
+                position: relative;
+                top: 0;
+            }
+
+            .celn-tags {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚗 智能客户管理系统 v2.0</h1>
+            <p>基于CELN模型 + 探需九问的智能客户画像分析系统</p>
+        </div>
+
+        <!-- 角色切换器 -->
+        <div class="role-switcher">
+            <button class="role-btn active" onclick="switchRole('expert')">
+                🎯 专家视图
+            </button>
+            <button class="role-btn" onclick="switchRole('manager')">
+                📊 店长视图
+            </button>
+        </div>
+
+        <!-- 专家视图 -->
+        <div id="expertPage" class="page active">
+            <div class="main-grid">
+                <!-- 左侧：输入区域 -->
+                <div class="input-section">
+                    <div class="card">
+                        <h2>客户信息录入</h2>
+
+                        <div class="example-box">
+                            <div class="title">💡 输入提示</div>
+                            <div class="content">
+                                请用自然语言描述客户，包含：能源形式、用车情况、用车场景、购车预算、家庭结构、决策人、关注功能、竞品对比、购买时间等信息
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label style="display: flex; justify-content: space-between; align-items: center;">
+                                <span>客户描述（自然语言输入）</span>
+                            </label>
+                            <textarea id="customerInput" placeholder="例如：
+
+客户是一位30岁的男性，目前在一家互联网公司担任产品经理。他想买一辆新能源SUV，预算在30-35万之间，主要用于家庭出行和周末带孩子去郊游。
+
+决策人是他本人，但需要和妻子商量。他目前在对比理想L7和蔚来ES6这两款车型，计划在3个月内完成购买。
+
+他比较关注的是续航里程和智能驾驶功能，担心新能源车在冬天续航会大幅缩水，同时也关心充电便利性。
+
+他住在朝阳区，之前在三里屯和望京的理想门店都看过车。沟通记录：1.24电话沟通、1.17到店试驾、1.10首次接触。他主要顾虑还是在竞品对比上，对金融政策比较敏感，想了解低息贷款方案，手上有一辆宝马3系想置换。"></textarea>
+                            <div class="hint">🔍 系统将智能识别关键词，并基于探需九问进行分析</div>
+                        </div>
+
+                        <button class="btn" onclick="analyzeCustomer()">
+                            🤖 智能分析客户画像
+                        </button>
+
+                        <button class="btn btn-secondary" onclick="fillExample()">
+                            📝 填充示例数据
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 右侧：分析结果 -->
+                <div class="card">
+                    <h2>AI分析结果</h2>
+                    <div id="resultArea">
+                        <div class="empty-state">
+                            <div class="icon">📊</div>
+                            <p>请在左侧输入客户信息后点击"智能分析"</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 店长视图 -->
+        <div id="managerPage" class="page">
+            <div class="card">
+                <h2>客户管理Excel导入</h2>
+
+                <div class="upload-area" id="uploadArea" onclick="document.getElementById('excelFile').click()">
+                    <div class="icon">📁</div>
+                    <p>点击或拖拽上传客户管理Excel文件</p>
+                    <div class="hint">支持 .xlsx / .xls 格式，需包含：专家姓名、客户姓名、商机等级(A/B/C/FC)、客户描述等字段</div>
+                </div>
+                <input type="file" id="excelFile" accept=".xlsx,.xls" onchange="handleFileUpload(event)">
+
+                <div id="managerAnalysis" style="display: none;">
+                    <!-- 整体统计 -->
+                    <h3 style="font-size: 18px; margin-bottom: 15px; color: #333;">📈 整体商机统计</h3>
+                    <div class="stats-grid">
+                        <!-- 统计卡片将动态生成 -->
+                    </div>
+
+                    <!-- 探需薄弱项分析 -->
+                    <h3 style="font-size: 18px; margin: 25px 0 15px; color: #333;">⚠️ 团队探需薄弱项 TOP5（按完成度从低到高）</h3>
+                    <div id="weaknessAnalysis"></div>
+
+                    <!-- 专家列表 -->
+                    <h3 style="font-size: 18px; margin: 25px 0 15px; color: #333;">👥 各专家详细分析</h3>
+                    <div id="expertList" class="expert-list"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 全局变量
+        let managerData = null;
+
+        // 市场车型价格库（单位：万元）
+        const VEHICLE_PRICE_DB = {
+            // 理想车型
+            'L6': { brand: '理想', price: 25, range: [24, 28] },
+            'L7': { brand: '理想', price: 35, range: [33, 38] },
+            'L8': { brand: '理想', price: 40, range: [40, 50] },
+            'L9': { brand: '理想', price: 50, range: [45, 55] },
+            'MEGA': { brand: '理想', price: 56, range: [55, 60] },
+            'i6': { brand: '理想', price: 27, range: [25, 30] },
+            'i8': { brand: '理想', price: 41, range: [36, 46] },
+
+            // 蔚来
+            'ES6': { brand: '蔚来', price: 35, range: [35, 44] },
+            'ES7': { brand: '蔚来', price: 43, range: [42, 52] },
+            'ES8': { brand: '蔚来', price: 50, range: [49, 59] },
+            'ET5': { brand: '蔚来', price: 30, range: [29, 35] },
+            'ET7': { brand: '蔚来', price: 43, range: [42, 52] },
+            'EC6': { brand: '蔚来', price: 36, range: [35, 44] },
+
+            // 小鹏
+            'G6': { brand: '小鹏', price: 23, range: [20, 28] },
+            'G9': { brand: '小鹏', price: 30, range: [26, 40] },
+            'P7': { brand: '小鹏', price: 25, range: [23, 33] },
+            'X9': { brand: '小鹏', price: 36, range: [36, 42] },
+
+            // 问界
+            'M5': { brand: '问界', price: 26, range: [25, 30] },
+            'M7': { brand: '问界', price: 28, range: [25, 35] },
+            'M9': { brand: '问界', price: 47, range: [47, 57] },
+
+            // 特斯拉
+            'Model 3': { brand: '特斯拉', price: 26, range: [23, 34] },
+            'Model Y': { brand: '特斯拉', price: 28, range: [25, 36] },
+            'Model S': { brand: '特斯拉', price: 70, range: [70, 85] },
+            'Model X': { brand: '特斯拉', price: 75, range: [75, 90] },
+
+            // 比亚迪
+            '汉': { brand: '比亚迪', price: 22, range: [18, 32] },
+            '唐': { brand: '比亚迪', price: 23, range: [20, 33] },
+            '海豹': { brand: '比亚迪', price: 22, range: [18, 28] },
+            '仰望U8': { brand: '比亚迪', price: 110, range: [110, 120] },
+
+            // 腾势
+            'D9': { brand: '腾势', price: 37, range: [34, 47] },
+            'N7': { brand: '腾势', price: 30, range: [30, 38] },
+            'N8': { brand: '腾势', price: 32, range: [32, 40] },
+
+            // 极氪
+            '001': { brand: '极氪', price: 30, range: [27, 38] },
+            '009': { brand: '极氪', price: 50, range: [50, 59] },
+            'X': { brand: '极氪', price: 30, range: [30, 38] },
+
+            // 传统豪华品牌
+            'GL8': { brand: '别克', price: 28, range: [23, 53] },
+            '埃尔法': { brand: '丰田', price: 85, range: [82, 92] },
+            'V级': { brand: '奔驰', price: 50, range: [48, 65] },
+            'Q5': { brand: '奥迪', price: 41, range: [39, 50] },
+            'Q7': { brand: '奥迪', price: 70, range: [69, 86] },
+            '3系': { brand: '宝马', price: 32, range: [30, 40] },
+            '5系': { brand: '宝马', price: 44, range: [43, 66] },
+            'X3': { brand: '宝马', price: 40, range: [39, 48] },
+            'X5': { brand: '宝马', price: 62, range: [60, 85] },
+            'GLC': { brand: '奔驰', price: 42, range: [40, 50] },
+            'GLE': { brand: '奔驰', price: 71, range: [70, 90] }
+        };
+
+        // 车型名称的各种变体（用于模糊匹配）
+        const VEHICLE_ALIASES = {
+            'model3': 'Model 3',
+            'modely': 'Model Y',
+            'models': 'Model S',
+            'modelx': 'Model X',
+            'gl8': 'GL8',
+            'q5': 'Q5',
+            'q7': 'Q7',
+            'x3': 'X3',
+            'x5': 'X5',
+            'es6': 'ES6',
+            'es7': 'ES7',
+            'es8': 'ES8',
+            'et5': 'ET5',
+            'et7': 'ET7',
+            'ec6': 'EC6',
+            'g6': 'G6',
+            'g9': 'G9',
+            'p7': 'P7',
+            'x9': 'X9',
+            'm5': 'M5',
+            'm7': 'M7',
+            'm9': 'M9',
+            'd9': 'D9',
+            'n7': 'N7',
+            'n8': 'N8',
+            'l6': 'L6',
+            'l7': 'L7',
+            'l8': 'L8',
+            'l9': 'L9',
+            'i6': 'i6',
+            'i8': 'i8',
+            '极氪001': '001',
+            '极氪009': '009',
+            '极氪X': 'X',
+            '仰望u8': '仰望U8',
+            'u8': '仰望U8'
+        };
+
+        // 提取日期（支持多种格式）
+        function extractDates(text) {
+            const dates = new Set();
+            const currentYear = new Date().getFullYear();
+            const currentMonth = new Date().getMonth() + 1;
+
+            // 格式1: 0126, 1226 (MMDD)
+            const pattern1 = /(\d{4})(?![.\-年月])/g;
+            let match;
+            while ((match = pattern1.exec(text)) !== null) {
+                const str = match[1];
+                const month = parseInt(str.substring(0, 2));
+                const day = parseInt(str.substring(2, 4));
+                if (month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+                    // 判断年份：如果月份>当前月份，说明是去年的
+                    const year = month > currentMonth ? currentYear - 1 : currentYear;
+                    dates.add(`${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`);
+                }
+            }
+
+            // 格式2: 1-26, 12-26 (M-DD 或 MM-DD)
+            const pattern2 = /(\d{1,2})-(\d{1,2})(?![年月])/g;
+            while ((match = pattern2.exec(text)) !== null) {
+                const month = parseInt(match[1]);
+                const day = parseInt(match[2]);
+                if (month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+                    const year = month > currentMonth ? currentYear - 1 : currentYear;
+                    dates.add(`${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`);
+                }
+            }
+
+            // 格式3: 1.26, 12.26 (M.DD 或 MM.DD)
+            const pattern3 = /(\d{1,2})\.(\d{1,2})(?![年月])/g;
+            while ((match = pattern3.exec(text)) !== null) {
+                const month = parseInt(match[1]);
+                const day = parseInt(match[2]);
+                if (month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+                    const year = month > currentMonth ? currentYear - 1 : currentYear;
+                    dates.add(`${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`);
+                }
+            }
+
+            // 格式4: 1月26日, 12月26日
+            const pattern4 = /(\d{1,2})月(\d{1,2})[日号]/g;
+            while ((match = pattern4.exec(text)) !== null) {
+                const month = parseInt(match[1]);
+                const day = parseInt(match[2]);
+                if (month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+                    const year = month > currentMonth ? currentYear - 1 : currentYear;
+                    dates.add(`${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`);
+                }
+            }
+
+            return Array.from(dates).sort();
+        }
+
+        // 识别车型（包括模糊匹配和上下文理解）
+        function extractVehicles(text) {
+            const found = new Set();
+            const textLower = text.toLowerCase().replace(/\s+/g, '');
+
+            // 品牌关键词映射（用于上下文推断）
+            const brandKeywords = {
+                '问界': ['问界', 'aito'],
+                '蔚来': ['蔚来', 'nio'],
+                '小鹏': ['小鹏', 'xpeng'],
+                '理想': ['理想', 'li'],
+                '特斯拉': ['特斯拉', 'tesla'],
+                '比亚迪': ['比亚迪', 'byd'],
+                '腾势': ['腾势', 'denza'],
+                '极氪': ['极氪', 'zeekr'],
+                '奔驰': ['奔驰', 'benz', 'mercedes'],
+                '宝马': ['宝马', 'bmw'],
+                '奥迪': ['奥迪', 'audi'],
+                '别克': ['别克', 'buick'],
+                '丰田': ['丰田', 'toyota']
+            };
+
+            // 先检测文本中出现的品牌
+            const detectedBrands = [];
+            for (const [brand, keywords] of Object.entries(brandKeywords)) {
+                for (const keyword of keywords) {
+                    if (textLower.includes(keyword.toLowerCase())) {
+                        detectedBrands.push(brand);
+                        break;
+                    }
+                }
+            }
+
+            // 上下文相关的模糊车型匹配（如M8、M7等）
+            const ambiguousModels = {
+                'm8': ['问界', '宝马'],
+                'm7': ['问界', '宝马'],
+                'm5': ['问界', '宝马'],
+                'm9': ['问界'],
+                'l6': ['理想'],
+                'l7': ['理想'],
+                'l8': ['理想'],
+                'l9': ['理想'],
+                'i6': ['理想'],
+                'i8': ['理想', '宝马'],
+                'es6': ['蔚来'],
+                'es7': ['蔚来'],
+                'es8': ['蔚来'],
+                'et5': ['蔚来'],
+                'et7': ['蔚来'],
+                'g6': ['小鹏'],
+                'g9': ['小鹏'],
+                'p7': ['小鹏'],
+                'x9': ['小鹏'],
+                'd9': ['腾势']
+            };
+
+            // 对于模糊车型，根据上下文推断品牌
+            for (const [modelKey, possibleBrands] of Object.entries(ambiguousModels)) {
+                if (textLower.includes(modelKey)) {
+                    // 如果上下文中有明确品牌，使用该品牌
+                    const matchedBrand = possibleBrands.find(brand => detectedBrands.includes(brand));
+                    if (matchedBrand) {
+                        // 查找该品牌下的匹配车型
+                        for (const [model, info] of Object.entries(VEHICLE_PRICE_DB)) {
+                            if (info.brand === matchedBrand && model.toLowerCase() === modelKey) {
+                                found.add(model);
+                            }
+                        }
+                    } else {
+                        // 如果没有明确品牌，默认使用第一个可能的品牌
+                        const defaultBrand = possibleBrands[0];
+                        for (const [model, info] of Object.entries(VEHICLE_PRICE_DB)) {
+                            if (info.brand === defaultBrand && model.toLowerCase() === modelKey) {
+                                found.add(model);
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 别名匹配
+            for (const [alias, standard] of Object.entries(VEHICLE_ALIASES)) {
+                if (textLower.includes(alias.toLowerCase())) {
+                    found.add(standard);
+                }
+            }
+
+            // 直接匹配车型库中的完整名称
+            for (const model of Object.keys(VEHICLE_PRICE_DB)) {
+                const modelLower = model.toLowerCase().replace(/\s+/g, '');
+                if (textLower.includes(modelLower)) {
+                    found.add(model);
+                }
+            }
+
+            return Array.from(found);
+        }
+
+        // 根据车型推断预算区间
+        function estimateBudgetFromVehicles(vehicles) {
+            if (vehicles.length === 0) return null;
+
+            const prices = vehicles.map(v => VEHICLE_PRICE_DB[v]).filter(p => p);
+            if (prices.length === 0) return null;
+
+            // 取所有车型价格的最小值和最大值作为预算区间
+            const minPrice = Math.min(...prices.map(p => p.range[0]));
+            const maxPrice = Math.max(...prices.map(p => p.range[1]));
+
+            return {
+                min: minPrice,
+                max: maxPrice,
+                avg: Math.round((minPrice + maxPrice) / 2)
+            };
+        }
+
+        // 角色切换
+        function switchRole(role) {
+            // 更新按钮状态
+            document.querySelectorAll('.role-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+
+            // 切换页面
+            document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
+            if (role === 'expert') {
+                document.getElementById('expertPage').classList.add('active');
+            } else if (role === 'manager') {
+                document.getElementById('managerPage').classList.add('active');
+            }
+        }
+
+        // 探需九问配置
+        const NINE_QUESTIONS = [
+            {
+                id: 'energy_intention',
+                label: '1. 能源形式-购车意向',
+                question: '打算买增程还是纯电？',
+                keywords: ['增程', '纯电', '新能源', '电动'],
+                extract: (text) => {
+                    if (text.includes('增程')) return { answer: '增程', status: 'complete' };
+                    if (text.includes('纯电')) return { answer: '纯电', status: 'complete' };
+                    if (text.includes('新能源') || text.includes('电动')) return { answer: '新能源（未明确增程/纯电）', status: 'partial' };
+                    return { answer: '探需不到位', status: 'incomplete' };
+                }
+            },
+            {
+                id: 'current_car',
+                label: '2. 用车情况',
+                question: '现在开什么车？置换还是增购？',
+                keywords: ['置换', '增购', '旧车', '现在开', '目前开'],
+                extract: (text) => {
+                    let answer = [];
+                    let status = 'incomplete';
+
+                    if (text.includes('置换') || text.includes('以旧换新')) {
+                        answer.push('置换');
+                        status = 'partial';
+                    } else if (text.includes('增购') || text.includes('第二辆')) {
+                        answer.push('增购');
+                        status = 'partial';
+                    }
+
+                    const carBrands = ['奔驰', '宝马', 'BMW', '奥迪', '特斯拉', '蔚来', '小鹏', '理想', '比亚迪', '丰田', '本田', '大众'];
+                    const foundBrands = carBrands.filter(brand => text.includes(brand));
+                    if (foundBrands.length > 0) {
+                        answer.push(`当前车：${foundBrands.join('、')}`);
+                        status = answer.length >= 2 ? 'complete' : 'partial';
+                    }
+
+                    return {
+                        answer: answer.length > 0 ? answer.join('，') : '探需不到位',
+                        status: answer.length === 0 ? 'incomplete' : status
+                    };
+                }
+            },
+            {
+                id: 'usage_scenario',
+                label: '3. 用车场景',
+                question: '市内通勤短途还是长途自驾？',
+                keywords: ['通勤', '上下班', '短途', '长途', '自驾', '市内', '郊游', '旅游'],
+                extract: (text) => {
+                    let scenarios = [];
+                    if (text.includes('通勤') || text.includes('上下班')) scenarios.push('通勤');
+                    if (text.includes('短途') || text.includes('市内')) scenarios.push('市内短途');
+                    if (text.includes('长途') || text.includes('自驾') || text.includes('旅游')) scenarios.push('长途自驾');
+                    if (text.includes('郊游') || text.includes('周末')) scenarios.push('周末出游');
+                    if (text.includes('接送孩子') || text.includes('接娃')) scenarios.push('接送孩子');
+                    if (text.includes('家庭出行')) scenarios.push('家庭出行');
+
+                    if (scenarios.length === 0) return { answer: '探需不到位', status: 'incomplete' };
+                    return { answer: scenarios.join('、'), status: 'complete' };
+                }
+            },
+            {
+                id: 'budget',
+                label: '4. 购车预算',
+                question: '预算大致范围？',
+                keywords: ['预算', '万', '价格'],
+                extract: (text) => {
+                    // 先尝试直接匹配预算
+                    const budgetMatch = text.match(/(\d+)[-~到](\d+)万/);
+                    if (budgetMatch) {
+                        return { answer: `${budgetMatch[1]}-${budgetMatch[2]}万（明确）`, status: 'complete' };
+                    }
+                    const singleBudget = text.match(/预算[约大概左右]*(\d+)万/);
+                    if (singleBudget) {
+                        return { answer: `约${singleBudget[1]}万（明确）`, status: 'complete' };
+                    }
+
+                    // 如果没有直接预算，通过车型推断
+                    const vehicles = extractVehicles(text);
+                    const estimatedBudget = estimateBudgetFromVehicles(vehicles);
+                    if (estimatedBudget) {
+                        return {
+                            answer: `${estimatedBudget.min}-${estimatedBudget.max}万（根据对比车型推断）`,
+                            status: 'partial'
+                        };
+                    }
+
+                    return { answer: '探需不到位', status: 'incomplete' };
+                }
+            },
+            {
+                id: 'family_structure',
+                label: '5. 家庭结构',
+                question: '想看哪款车/家里几口人？',
+                keywords: ['口人', '家庭', '孩子', '老人', '夫妻', 'L6', 'L7', 'L8', 'L9', 'MEGA'],
+                extract: (text) => {
+                    let answer = [];
+
+                    const familyMatch = text.match(/(\d+)口人/);
+                    if (familyMatch) {
+                        answer.push(`${familyMatch[1]}口人`);
+                    } else {
+                        let count = 0;
+                        if (text.includes('夫妻') || text.includes('妻子') || text.includes('老婆') || text.includes('老公')) count += 2;
+                        if (text.includes('孩子') || text.includes('小孩') || text.includes('儿子') || text.includes('女儿')) count += 1;
+                        if (text.includes('老人') || text.includes('父母')) count += 2;
+                        if (count > 0) answer.push(`约${count}+口人`);
+                    }
+
+                    const models = ['L6', 'L7', 'L8', 'L9', 'MEGA'];
+                    const foundModels = models.filter(m => text.includes(m));
+                    if (foundModels.length > 0) {
+                        answer.push(`意向：${foundModels.join('、')}`);
+                    }
+
+                    if (answer.length === 0) return { answer: '探需不到位', status: 'incomplete' };
+                    return { answer: answer.join('，'), status: answer.length >= 2 ? 'complete' : 'partial' };
+                }
+            },
+            {
+                id: 'decision_maker',
+                label: '6. 决策人',
+                question: '主要是谁在用车/谁决策？',
+                keywords: ['本人', '自己', '家人', '妻子', '老婆', '老公', '父母', '商量'],
+                extract: (text) => {
+                    if (text.includes('本人') || text.includes('自己')) {
+                        if (text.includes('商量') || text.includes('家人') || text.includes('妻子') || text.includes('老婆')) {
+                            return { answer: '本人主导，需家庭商量', status: 'complete' };
+                        }
+                        return { answer: '本人决策', status: 'complete' };
+                    }
+                    if (text.includes('家人') || text.includes('妻子') || text.includes('老婆') || text.includes('老公')) {
+                        return { answer: '家庭共同决策', status: 'partial' };
+                    }
+                    return { answer: '探需不到位', status: 'incomplete' };
+                }
+            },
+            {
+                id: 'key_features',
+                label: '7. 关注功能',
+                question: '最看重什么功能？',
+                keywords: ['续航', '智能驾驶', '空间', '舒适', '安全', '充电', '配置', '动力', '操控'],
+                extract: (text) => {
+                    const concerns = ['续航', '智能驾驶', '空间', '舒适', '安全', '充电', '价格', '保值率', '售后', '配置', '动力', '操控', '外观', '内饰'];
+                    const found = concerns.filter(c => text.includes(c));
+                    if (found.length === 0) return { answer: '探需不到位', status: 'incomplete' };
+                    return { answer: found.join('、'), status: 'complete' };
+                }
+            },
+            {
+                id: 'competitor_comparison',
+                label: '8. 竞品对比',
+                question: '最近在看什么其他车？',
+                keywords: ['蔚来', '小鹏', '问界', '特斯拉', '比亚迪', '对比', '比较'],
+                extract: (text) => {
+                    // 使用增强的车型识别
+                    const vehicles = extractVehicles(text);
+                    const brands = new Set();
+                    const models = [];
+
+                    vehicles.forEach(v => {
+                        const vehicleInfo = VEHICLE_PRICE_DB[v];
+                        if (vehicleInfo) {
+                            brands.add(vehicleInfo.brand);
+                            // 只记录非理想品牌的车型
+                            if (vehicleInfo.brand !== '理想') {
+                                models.push(`${vehicleInfo.brand} ${v}`);
+                            }
+                        }
+                    });
+
+                    // 移除理想品牌（因为是本品）
+                    brands.delete('理想');
+
+                    if (models.length > 0) {
+                        return { answer: models.join('、'), status: 'complete' };
+                    }
+
+                    if (brands.size > 0) {
+                        return { answer: Array.from(brands).join('、'), status: 'partial' };
+                    }
+
+                    // 回退到原有的品牌关键词匹配
+                    const brandKeywords = ['蔚来', '小鹏', '问界', '特斯拉', '比亚迪', '腾势', '极氪', '奔驰', '宝马', '奥迪'];
+                    const found = brandKeywords.filter(c => text.includes(c));
+                    if (found.length > 0) {
+                        return { answer: found.join('、'), status: 'partial' };
+                    }
+
+                    if (text.includes('对比') || text.includes('比较')) {
+                        return { answer: '有对比，但品牌/车型未明确', status: 'partial' };
+                    }
+
+                    return { answer: '探需不到位', status: 'incomplete' };
+                }
+            },
+            {
+                id: 'purchase_timing',
+                label: '9. 购买时间',
+                question: '计划什么时候用车？',
+                keywords: ['立即', '马上', '一个月', '三个月', '半年', '今年', '明年'],
+                extract: (text) => {
+                    if (text.match(/立即|马上|这周|本周|今天|现在就买/)) return { answer: '立即购买', status: 'complete' };
+                    if (text.match(/一个月|1个月|月内|近期/)) return { answer: '1个月内', status: 'complete' };
+                    if (text.match(/三个月|3个月|季度内/)) return { answer: '3个月内', status: 'complete' };
+                    if (text.match(/半年|6个月/)) return { answer: '半年内', status: 'partial' };
+                    if (text.match(/观望|再看看|不急|等等/)) return { answer: '观望中', status: 'partial' };
+                    return { answer: '探需不到位', status: 'incomplete' };
+                }
+            }
+        ];
+
+        // CELN模型配置
+        const CELN_CONFIG = {
+            C: {
+                name: '购车意向',
+                keywords: {
+                    high: ['想买', '要买', '准备买', '计划购买', '明确购买', '确定要买'],
+                    medium: ['考虑', '打算', '有意向', '看看'],
+                    low: ['了解', '随便看看', '先看看'],
+                },
+                labels: {
+                    high: '高意向',
+                    medium: '中意向',
+                    low: '低意向',
+                }
+            },
+            E: {
+                name: '能源类型',
+                keywords: {
+                    new_energy: ['新能源', '电动', '纯电', '增程'],
+                    fuel: ['燃油', '汽油', '柴油'],
+                    hybrid: ['混动', '混合动力'],
+                },
+                labels: {
+                    new_energy: '新能源',
+                    fuel: '燃油',
+                    hybrid: '混动',
+                }
+            },
+            L: {
+                name: '品牌偏好',
+                keywords: {
+                    ideal: ['理想', 'L6', 'L7', 'L8', 'L9', 'MEGA'],
+                    comparing: ['对比', '比较', '还在看', '蔚来', '小鹏', '问界', '特斯拉'],
+                },
+                labels: {
+                    ideal: '理想',
+                    comparing: '对比中',
+                }
+            },
+            N: {
+                name: '购买时机',
+                keywords: {
+                    immediate: ['立即', '马上', '这周', '本周', '今天', '现在就买'],
+                    within_month: ['一个月', '1个月', '月内', '近期'],
+                    within_3months: ['三个月', '3个月', '季度内'],
+                    wait_and_see: ['观望', '再看看', '不急', '等等'],
+                },
+                labels: {
+                    immediate: '立即',
+                    within_month: '1月内',
+                    within_3months: '3月内',
+                    wait_and_see: '观望',
+                }
+            }
+        };
+
+        // ========== 专家视图功能 ==========
+
+        // 填充示例数据
+        function fillExample() {
+            document.getElementById('customerInput').value =
+`客户是一位30岁的男性，目前在一家互联网公司担任产品经理。他想买一辆新能源SUV，预算在30-35万之间，主要用于家庭出行和周末带孩子去郊游。
+
+决策人是他本人，但需要和妻子商量。他目前在对比理想L7和蔚来ES6这两款车型，计划在3个月内完成购买。
+
+他比较关注的是续航里程和智能驾驶功能，担心新能源车在冬天续航会大幅缩水，同时也关心充电便利性。
+
+他住在朝阳区，之前在三里屯和望京的理想门店都看过车。沟通记录：1.24电话沟通、1.17到店试驾、1.10首次接触。他主要顾虑还是在竞品对比上，对金融政策比较敏感，想了解低息贷款方案，手上有一辆宝马3系想置换。`;
+        }
+
+        // 分析CELN
+        function analyzeCELN(text) {
+            return {
+                C: analyzeIntention(text),
+                E: analyzeEnergyType(text),
+                L: analyzeBrandPreference(text),
+                N: analyzeTiming(text)
+            };
+        }
+
+        function analyzeIntention(text) {
+            const config = CELN_CONFIG.C.keywords;
+            for (const keyword of config.high) {
+                if (text.includes(keyword)) return 'high';
+            }
+            for (const keyword of config.medium) {
+                if (text.includes(keyword)) return 'medium';
+            }
+            for (const keyword of config.low) {
+                if (text.includes(keyword)) return 'low';
+            }
+            return 'medium';
+        }
+
+        function analyzeEnergyType(text) {
+            const config = CELN_CONFIG.E.keywords;
+            for (const keyword of config.new_energy) {
+                if (text.includes(keyword)) return 'new_energy';
+            }
+            for (const keyword of config.fuel) {
+                if (text.includes(keyword)) return 'fuel';
+            }
+            for (const keyword of config.hybrid) {
+                if (text.includes(keyword)) return 'hybrid';
+            }
+            return 'new_energy';
+        }
+
+        function analyzeBrandPreference(text) {
+            const config = CELN_CONFIG.L.keywords;
+            let hasIdeal = false;
+            let hasComparing = false;
+
+            for (const keyword of config.ideal) {
+                if (text.includes(keyword)) hasIdeal = true;
+            }
+            for (const keyword of config.comparing) {
+                if (text.includes(keyword)) hasComparing = true;
+            }
+
+            if (hasIdeal && hasComparing) return 'comparing';
+            if (hasIdeal) return 'ideal';
+            return 'comparing';
+        }
+
+        function analyzeTiming(text) {
+            const config = CELN_CONFIG.N.keywords;
+            for (const keyword of config.immediate) {
+                if (text.includes(keyword)) return 'immediate';
+            }
+            for (const keyword of config.within_month) {
+                if (text.includes(keyword)) return 'within_month';
+            }
+            for (const keyword of config.within_3months) {
+                if (text.includes(keyword)) return 'within_3months';
+            }
+            for (const keyword of config.wait_and_see) {
+                if (text.includes(keyword)) return 'wait_and_see';
+            }
+            return 'within_3months';
+        }
+
+        // 分析探需九问
+        function analyzeNineQuestions(text) {
+            return NINE_QUESTIONS.map(q => {
+                const result = q.extract(text);
+                return {
+                    ...q,
+                    ...result
+                };
+            });
+        }
+
+        // 提取关键词（探需九问未体现的信息）
+        function extractKeywords(text) {
+            const keywords = {};
+
+            // 用车用途
+            const purposes = ['家庭', '商务', '通勤', '上下班', '旅游', '郊游', '接送孩子', '代步'];
+            keywords.purpose = purposes.filter(p => text.includes(p));
+
+            // 意向车型
+            const vehicles = extractVehicles(text);
+            keywords.models = vehicles.filter(v => {
+                const info = VEHICLE_PRICE_DB[v];
+                return info && info.brand === '理想';
+            });
+
+            // 竞品车型
+            keywords.competitors = vehicles.filter(v => {
+                const info = VEHICLE_PRICE_DB[v];
+                return info && info.brand !== '理想';
+            }).map(v => {
+                const info = VEHICLE_PRICE_DB[v];
+                return `${info.brand} ${v}`;
+            });
+
+            // 关注点
+            const concerns = ['续航', '智能驾驶', '空间', '舒适', '安全', '充电', '价格', '保值率', '售后', '配置', '动力', '操控', '外观', '内饰'];
+            keywords.concerns = concerns.filter(c => text.includes(c));
+
+            // 看车门店
+            const stores = ['三里屯', '望京', '国贸', '大兴', '亦庄', '五棵松', '西单', '建国门', '华贸', '芳草地'];
+            keywords.visitedStores = stores.filter(s => text.includes(s));
+
+            // 居住地址
+            const locations = ['朝阳', '海淀', '东城', '西城', '丰台', '大兴', '顺义', '通州', '昌平', '石景山'];
+            keywords.residenceLocation = locations.find(l => text.includes(l)) || null;
+
+            // 金融敏感度
+            if (text.includes('全款') || text.includes('一次性付款')) {
+                keywords.financeSensitivity = '不敏感(全款)';
+            } else if (text.includes('低息') || text.includes('贷款') || text.includes('分期') || text.includes('金融') || text.includes('按揭')) {
+                keywords.financeSensitivity = '敏感';
+            } else {
+                keywords.financeSensitivity = '未知';
+            }
+
+            // 二手车置换
+            if (text.includes('置换') || text.includes('旧车') || text.includes('卖车') || text.includes('以旧换新')) {
+                keywords.hasTradeIn = true;
+                // 尝试提取旧车品牌/车型
+                const carBrands = ['奔驰', '宝马', 'BMW', '奥迪', '特斯拉', '蔚来', '小鹏', '理想', '比亚迪', '腾势', '极氪', '问界', '丰田', '本田', '大众', '别克'];
+                const foundBrand = carBrands.find(brand => text.includes(brand));
+
+                // 尝试识别具体车型
+                const allVehicles = extractVehicles(text);
+                const tradeInVehicle = allVehicles.find(v => {
+                    const info = VEHICLE_PRICE_DB[v];
+                    return info && info.brand !== '理想';
+                });
+
+                if (tradeInVehicle) {
+                    const info = VEHICLE_PRICE_DB[tradeInVehicle];
+                    keywords.tradeInInfo = `${info.brand} ${tradeInVehicle}`;
+                } else if (foundBrand) {
+                    keywords.tradeInInfo = foundBrand;
+                } else {
+                    keywords.tradeInInfo = '未知';
+                }
+            } else {
+                keywords.hasTradeIn = false;
+            }
+
+            // 跟进次数（使用日期提取）
+            const dates = extractDates(text);
+            keywords.followUpCount = dates.length;
+
+            // 顾虑类别
+            const concernCategories = {
+                '竞品': 'competitor',
+                '对比': 'competitor',
+                '交付': 'delivery',
+                '周期': 'delivery',
+                '舆论': 'public_opinion',
+                '口碑': 'public_opinion',
+                '品牌': 'brand',
+                '价格': 'price',
+                '品质': 'quality',
+                '质量': 'quality'
+            };
+
+            for (const [key, value] of Object.entries(concernCategories)) {
+                if (text.includes(key)) {
+                    keywords.concernCategory = value;
+                    break;
+                }
+            }
+
+            return keywords;
+        }
+
+        // 生成精简话术（最多2个：第一个根据跟进次数，第二个根据顾虑点）
+        function generateImprovedScripts(celn, nineQuestions, keywords) {
+            const scripts = [];
+            const followUpCount = keywords.followUpCount || 0;
+
+            // ====== 第一个话术：根据跟进次数 ======
+
+            if (followUpCount === 0) {
+                // 首次接触：建立信任 + 了解需求
+                scripts.push({
+                    type: 'greeting',
+                    title: '👋 首次接触话术',
+                    content: `您好！很高兴认识您，我是理想汽车的专属顾问。${keywords.models && keywords.models.length > 0 ? '看您对' + keywords.models.join('、') + '比较感兴趣' : '感谢您关注理想汽车'}，${keywords.purpose && keywords.purpose.length > 0 ? '平时主要' + keywords.purpose.join('、') + '用车是吧' : '不知道您平时主要什么场景用车呢'}？我先了解一下您的需求，这样能更准确地给您推荐合适的车型和配置。`,
+                    stage: '首次接触'
+                });
+            } else if (followUpCount >= 1 && followUpCount <= 2) {
+                // 跟进1-2次：邀约试驾 + 动态体验
+                if (keywords.visitedStores && keywords.visitedStores.length > 0) {
+                    scripts.push({
+                        type: 'test_drive',
+                        title: '🚗 深度试驾邀约',
+                        content: `${keywords.visitedStores.join('、')}那边您之前去看过了是吧？静态看车只能了解个大概，${keywords.models && keywords.models.length > 0 ? keywords.models[0] : '理想汽车'}真正的产品力还是得开起来才能感受到。特别是咱们的智能驾驶、加速性能、静谧性这些，在路上跑一圈您就能直观感受差异在哪儿。我给您约个完整的试驾，大概一小时左右，城市道路、高速都能体验到，您看这周末哪天方便？`,
+                        stage: '试驾邀约'
+                    });
+                } else {
+                    scripts.push({
+                        type: 'test_drive',
+                        title: '🚗 试驾邀约',
+                        content: `咱们之前聊过您${keywords.purpose && keywords.purpose.length > 0 ? '主要' + keywords.purpose.join('、') + '用车' : '的基本需求'}，参数配置都能在网上看到，但真正的乘坐感受、驾驶质感，还是得您亲自上车体验一下。${keywords.models && keywords.models.length > 0 ? keywords.models[0] : '理想汽车'}的智能座舱、辅助驾驶、动力响应，您实际开一开就知道和传统车有多大区别了。我帮您预约个试驾吧，您看这周哪天有空？`,
+                        stage: '试驾邀约'
+                    });
+                }
+            } else if (followUpCount >= 3) {
+                // 跟进3次以上：进入谈单阶段，给政策、补贴、促成
+                scripts.push({
+                    type: 'closing',
+                    title: '🎯 权益政策介绍',
+                    content: `哥/姐，跟您说个好消息，咱们这边最近有了新的购车权益政策，特别适合您这种情况。我给您详细介绍一下：\n\n【此处需根据最新官方政策填写】\n• 限时购车权益：包括积分礼包、充电桩安装补贴、保险优惠等\n${keywords.financeSensitivity === '敏感' ? '• 金融方案：低息甚至0息方案，能帮您省不少利息\n' : ''}${keywords.hasTradeIn ? '• 置换补贴：您那辆' + keywords.tradeInInfo + '可以抵一部分车款，还有额外的置换补贴\n' : ''}\n这些权益都是有时效的，如果您近期能定下来，正好能帮您把这些优惠都锁定了。您看还有什么顾虑吗？咱们一起看看能不能解决。`,
+                    stage: '谈单阶段'
+                });
+            }
+
+            // ====== 第二个话术：根据主要顾虑点（优先级排序）======
+
+            // 优先级1：家庭决策顾虑（家人不同意）
+            const decisionProbe = nineQuestions.find(q => q.id === 'decision_maker');
+            if (decisionProbe && decisionProbe.answer && (decisionProbe.answer.includes('商量') || decisionProbe.answer.includes('家庭'))) {
+                scripts.push({
+                    type: 'family_decision',
+                    title: '👨‍👩‍👧‍👦 家庭决策话术',
+                    content: `了解您也非常重视家人的想法，这个决定确实需要全家人都满意。我建议您试驾的时候把爱人${decisionProbe.answer.includes('父母') || decisionProbe.answer.includes('老人') ? '和父母' : ''}也带上来深度试驾一次。${keywords.models && keywords.models.length > 0 ? keywords.models[0] + '的' : '咱们'}${keywords.purpose && keywords.purpose.includes('家庭') ? '第二排、第三排的空间和舒适度' : '整体乘坐舒适性'}，家人实际坐进去体验，比您一个人看强多了。而且咱们门店有家庭体验区，小朋友也有地方玩，不会无聊。让家人亲身感受一下，他们肯定也会喜欢的。`,
+                    stage: '家庭决策顾虑化解'
+                });
+                return scripts;
+            }
+
+            // 优先级2：竞品对比顾虑
+            const competitorProbe = nineQuestions.find(q => q.id === 'competitor_comparison');
+            if (competitorProbe && competitorProbe.status !== 'incomplete' && competitorProbe.answer && competitorProbe.answer !== '探需不到位') {
+                const competitorAnswer = competitorProbe.answer;
+                let competitorScript = '';
+
+                if (competitorAnswer.includes('特斯拉') && competitorAnswer.includes('Model Y')) {
+                    competitorScript = `知道您在对比特斯拉Model Y，其实${keywords.models && keywords.models.length > 0 && keywords.models[0] === 'i6' ? 'i6' : '咱们的车'}和Model Y相比，空间确实要大不少，乘坐感受也更舒适。而且咱们的静谧性是同价位全行业第一，能给您带来最舒服的驾乘体验。买车买的就是一个舒心，您说是不？特斯拉的科技感确实不错，但咱们理想在家庭场景的适配上做得更细致，这个您试驾一下就能感受到差别。`;
+                } else if (competitorAnswer.includes('蔚来')) {
+                    competitorScript = `您在对比蔚来是吧？蔚来确实是个好品牌，服务做得很到位。不过咱们两家的侧重点不太一样，理想更注重家庭场景的实用性，像6座布局、冰箱彩电大沙发，这些都是为家庭长途出行专门设计的。而且增程技术让您完全不用担心续航问题，这点对家庭用户来说太友好了。蔚来的换电是方便，但您得保证周边换电站覆盖够好，而且换电也是要额外付费的。您可以两边都试驾感受一下，看哪个更符合您的用车习惯。`;
+                } else if (competitorAnswer.includes('问界')) {
+                    competitorScript = `您在对比问界${competitorAnswer.includes('M9') ? 'M9' : competitorAnswer.includes('M8') ? 'M8' : competitorAnswer.includes('M7') ? 'M7' : ''}是吧？问界这两年确实起来得挺快的。不过咱们理想在品牌口碑、用户社区活跃度上更有优势，而且在增程技术的成熟度上，理想是做得最早也最稳定的。${keywords.models && keywords.models.length > 0 ? keywords.models[0] + '的' : '咱们'}NVH静谧性、空间利用率也都是行业领先的。您要是家庭用车，理想的6座布局第二排独立座椅，坐起来比7座舒服多了。`;
+                } else if (competitorAnswer.includes('小鹏')) {
+                    competitorScript = `您在对比小鹏是吧？小鹏的智能化确实做得不错。不过咱们理想在空间、舒适性上的表现更突出，特别适合家庭用户。而且增程技术让您完全没有续航焦虑，想去哪儿就去哪儿，不用天天想着充电的事儿。小鹏的纯电车市区通勤是没问题，但要是经常长途自驾，增程的便利性就体现出来了。`;
+                } else {
+                    competitorScript = `知道您在对比${competitorAnswer}，这是非常明智的决策。不同品牌确实各有特点。${keywords.models && keywords.models.length > 0 ? keywords.models[0] : '理想汽车'}的核心优势在于：增程技术完全没有里程焦虑，6座布局为家庭出行深度优化，AD Max智能驾驶体验很棒，而且新势力里保值率最高。您最看重哪方面？我可以针对性地跟您聊聊理想在这些方面的表现。`;
+                }
+
+                scripts.push({
+                    type: 'competitor',
+                    title: '⚖️ 竞品对比应对',
+                    content: competitorScript,
+                    stage: '竞品对比顾虑化解'
+                });
+                return scripts;
+            }
+
+            // 优先级3：具体性能顾虑（续航、空间、价格等）
+            if (keywords.concerns && keywords.concerns.length > 0) {
+                const concernsStr = keywords.concerns.join('、');
+                let concernContent = `您提到比较关注${concernsStr}，这些确实是买车的重要考量。我跟您说说咱们在这些方面的表现：\n\n`;
+
+                if (keywords.concerns.includes('续航')) {
+                    concernContent += '• 续航：增程车型纯电能跑200多公里，日常通勤完全够用。长途的话加油就行，综合续航1000公里以上，完全不用担心趴窝\n';
+                }
+                if (keywords.concerns.includes('智能驾驶')) {
+                    concernContent += '• 智能驾驶：咱们的AD Max系统，高速NOA和城市NOA体验都特别好，是目前量产车里智能驾驶做得最好的之一。您试驾的时候可以重点体验一下\n';
+                }
+                if (keywords.concerns.includes('充电')) {
+                    concernContent += '• 充电：增程车型最大的好处就是不用焦虑充电。日常有条件就充电，用电成本低；长途或者来不及充就加油，特别灵活\n';
+                }
+                if (keywords.concerns.includes('保值率')) {
+                    concernContent += '• 保值率：理想在新势力里保值率是最高的，三年能到70%以上。这个您可以去二手车市场看看，理想的保值确实好\n';
+                }
+                if (keywords.concerns.includes('空间')) {
+                    concernContent += `• 空间：${keywords.models && keywords.models.length > 0 ? keywords.models[0] : '咱们的车'}空间绝对够用，特别是第二排，坐起来比很多D级车都舒服\n`;
+                }
+                if (keywords.concerns.includes('安全')) {
+                    concernContent += '• 安全：咱们在中保研的测试成绩都是优秀，安全配置也是拉满的，这方面您完全可以放心\n';
+                }
+                if (keywords.concerns.includes('价格')) {
+                    concernContent += `• 价格：${keywords.models && keywords.models.length > 0 ? keywords.models[0] : '咱们的车型'}的配置在同价位里是很厚道的，而且保值率高，综合算下来性价比很突出\n`;
+                }
+
+                concernContent += '\n您对这些方面还有什么具体想了解的吗？咱们可以细聊。';
+
+                scripts.push({
+                    type: 'concern',
+                    title: '💡 核心顾虑解答',
+                    content: concernContent,
+                    stage: '性能顾虑化解'
+                });
+                return scripts;
+            }
+
+            // 优先级4：金融政策敏感
+            if (keywords.financeSensitivity === '敏感') {
+                scripts.push({
+                    type: 'finance',
+                    title: '💳 金融方案推荐',
+                    content: `您对金融方案比较关注，我这边给您介绍几种方案：\n\n【此处需根据最新官方金融政策填写】\n• 低首付方案（15%起）：手头资金可以灵活运用\n• 0息/低息方案：能省下来的利息不是小数目\n• 弹性尾款方案：月供压力小，到期可选择续贷或付清\n\n${nineQuestions.find(q => q.id === 'budget')?.answer ? '按您' + nineQuestions.find(q => q.id === 'budget').answer.replace('（明确）', '').replace('（根据对比车型推断）', '') + '的预算' : '根据您的情况'}，我可以帮您详细算一下每个方案的月供和总成本，您看哪种更合适？`,
+                    stage: '金融方案推荐'
+                });
+                return scripts;
+            }
+
+            // 优先级5：置换需求
+            if (keywords.hasTradeIn) {
+                scripts.push({
+                    type: 'trade_in',
+                    title: '🔄 置换方案推荐',
+                    content: `您那辆${keywords.tradeInInfo}正好可以置换，这样能抵一部分车款，还能享受额外的置换补贴。\n\n咱们置换流程特别简单：\n1. 合作的评估师免费上门评估\n2. 价格透明，您可以拿去跟市场价对比\n3. 价格满意的话，直接抵扣新车车款\n4. 还有额外的置换补贴【具体金额需咨询门店】\n\n而且旧车可以一直开到新车交付，不耽误您用车。您看要不我先安排评估师给您的车估个价？`,
+                    stage: '置换方案推荐'
+                });
+                return scripts;
+            }
+
+            return scripts;
+        }
+
+        // 智能分析客户
+        function analyzeCustomer() {
+            const input = document.getElementById('customerInput').value.trim();
+
+            if (!input) {
+                alert('请输入客户描述信息');
+                return;
+            }
+
+            const celnResult = analyzeCELN(input);
+            const nineQuestionsResult = analyzeNineQuestions(input);
+            const keywords = extractKeywords(input);
+            const scripts = generateImprovedScripts(celnResult, nineQuestionsResult, keywords);
+
+            displayResult(celnResult, nineQuestionsResult, keywords, scripts);
+        }
+
+        // 显示结果
+        function displayResult(celn, nineQuestions, keywords, scripts) {
+            let html = '';
+
+            // CELN标签
+            html += '<div class="result-section">';
+            html += '<h3>📊 CELN模型分析</h3>';
+            html += '<div class="celn-tags">';
+
+            html += `<div class="celn-tag ${celn.C}">`;
+            html += '<div class="dimension">C</div>';
+            html += '<div class="name">购车意向</div>';
+            html += `<div class="value">${CELN_CONFIG.C.labels[celn.C]}</div>`;
+            html += '</div>';
+
+            html += `<div class="celn-tag ${celn.E === 'new_energy' ? 'high' : 'medium'}">`;
+            html += '<div class="dimension">E</div>';
+            html += '<div class="name">能源类型</div>';
+            html += `<div class="value">${CELN_CONFIG.E.labels[celn.E]}</div>`;
+            html += '</div>';
+
+            html += `<div class="celn-tag ${celn.L === 'ideal' ? 'high' : 'medium'}">`;
+            html += '<div class="dimension">L</div>';
+            html += '<div class="name">品牌偏好</div>';
+            html += `<div class="value">${CELN_CONFIG.L.labels[celn.L]}</div>`;
+            html += '</div>';
+
+            html += `<div class="celn-tag ${celn.N === 'immediate' ? 'high' : 'medium'}">`;
+            html += '<div class="dimension">N</div>';
+            html += '<div class="name">购买时机</div>';
+            html += `<div class="value">${CELN_CONFIG.N.labels[celn.N]}</div>`;
+            html += '</div>';
+
+            html += '</div>';
+            html += '</div>';
+
+            // 沟通记录统计（新增）
+            const input = document.getElementById('customerInput').value.trim();
+            const dates = extractDates(input);
+            if (dates.length > 0) {
+                html += '<div class="result-section">';
+                html += '<h3>📞 沟通记录</h3>';
+                html += '<div style="background: #f0f7ff; padding: 14px; border-radius: 10px; border-left: 4px solid #667eea;">';
+                html += `<div style="font-size: 15px; font-weight: 600; color: #333; margin-bottom: 8px;">`;
+                html += `已跟进 <span style="color: #667eea; font-size: 20px;">${dates.length}</span> 次`;
+                html += '</div>';
+                html += `<div style="font-size: 13px; color: #666; line-height: 1.6;">`;
+                html += `沟通日期：${dates.join(' → ')}`;
+                html += '</div>';
+                html += '</div>';
+                html += '</div>';
+            }
+
+            // 探需九问
+            html += '<div class="result-section">';
+            html += '<h3>🎯 探需九问分析</h3>';
+            html += '<div class="probe-grid">';
+
+            nineQuestions.forEach(q => {
+                html += `<div class="probe-item ${q.status}">`;
+                html += '<div style="flex: 1;">';
+                html += `<div class="question-label">${q.label}</div>`;
+                html += `<div class="answer">${q.answer}</div>`;
+                html += '</div>';
+                html += `<div class="status-badge ${q.status}">`;
+                if (q.status === 'complete') html += '✓ 已探需';
+                else if (q.status === 'partial') html += '⚠ 部分探需';
+                else html += '✗ 待探需';
+                html += '</div>';
+                html += '</div>';
+            });
+
+            html += '</div>';
+            html += '</div>';
+
+            // 补充关键词信息（探需九问未体现的）
+            html += '<div class="result-section">';
+            html += '<h3>🏷️ 补充信息</h3>';
+            html += '<div class="keyword-grid" style="display: grid; gap: 10px;">';
+
+            let hasKeywords = false;
+
+            if (keywords.models && keywords.models.length > 0) {
+                hasKeywords = true;
+                html += '<div class="keyword-item" style="background: #f8f9fa; padding: 12px 14px; border-radius: 10px; border-left: 4px solid #667eea;">';
+                html += '<div class="category" style="font-size: 13px; color: #667eea; font-weight: 600; margin-bottom: 4px;">意向车型</div>';
+                html += `<div class="keywords" style="font-size: 13px; color: #333; line-height: 1.5;">${keywords.models.join('、')}</div>`;
+                html += '</div>';
+            }
+
+            if (keywords.competitors && keywords.competitors.length > 0) {
+                hasKeywords = true;
+                html += '<div class="keyword-item" style="background: #f8f9fa; padding: 12px 14px; border-radius: 10px; border-left: 4px solid #667eea;">';
+                html += '<div class="category" style="font-size: 13px; color: #667eea; font-weight: 600; margin-bottom: 4px;">竞品车型</div>';
+                html += `<div class="keywords" style="font-size: 13px; color: #333; line-height: 1.5;">${keywords.competitors.join('、')}</div>`;
+                html += '</div>';
+            }
+
+            if (keywords.purpose && keywords.purpose.length > 0) {
+                hasKeywords = true;
+                html += '<div class="keyword-item" style="background: #f8f9fa; padding: 12px 14px; border-radius: 10px; border-left: 4px solid #667eea;">';
+                html += '<div class="category" style="font-size: 13px; color: #667eea; font-weight: 600; margin-bottom: 4px;">用车场景</div>';
+                html += `<div class="keywords" style="font-size: 13px; color: #333; line-height: 1.5;">${keywords.purpose.join('、')}</div>`;
+                html += '</div>';
+            }
+
+            if (keywords.concerns && keywords.concerns.length > 0) {
+                hasKeywords = true;
+                html += '<div class="keyword-item" style="background: #f8f9fa; padding: 12px 14px; border-radius: 10px; border-left: 4px solid #667eea;">';
+                html += '<div class="category" style="font-size: 13px; color: #667eea; font-weight: 600; margin-bottom: 4px;">关注点</div>';
+                html += `<div class="keywords" style="font-size: 13px; color: #333; line-height: 1.5;">${keywords.concerns.join('、')}</div>`;
+                html += '</div>';
+            }
+
+            if (keywords.visitedStores && keywords.visitedStores.length > 0) {
+                hasKeywords = true;
+                html += '<div class="keyword-item" style="background: #f8f9fa; padding: 12px 14px; border-radius: 10px; border-left: 4px solid #667eea;">';
+                html += '<div class="category" style="font-size: 13px; color: #667eea; font-weight: 600; margin-bottom: 4px;">看车门店</div>';
+                html += `<div class="keywords" style="font-size: 13px; color: #333; line-height: 1.5;">${keywords.visitedStores.join('、')}</div>`;
+                html += '</div>';
+            }
+
+            if (keywords.residenceLocation) {
+                hasKeywords = true;
+                html += '<div class="keyword-item" style="background: #f8f9fa; padding: 12px 14px; border-radius: 10px; border-left: 4px solid #667eea;">';
+                html += '<div class="category" style="font-size: 13px; color: #667eea; font-weight: 600; margin-bottom: 4px;">居住地址</div>';
+                html += `<div class="keywords" style="font-size: 13px; color: #333; line-height: 1.5;">${keywords.residenceLocation}</div>`;
+                html += '</div>';
+            }
+
+            if (keywords.financeSensitivity && keywords.financeSensitivity !== '未知') {
+                hasKeywords = true;
+                html += '<div class="keyword-item" style="background: #f8f9fa; padding: 12px 14px; border-radius: 10px; border-left: 4px solid #667eea;">';
+                html += '<div class="category" style="font-size: 13px; color: #667eea; font-weight: 600; margin-bottom: 4px;">金融敏感度</div>';
+                html += `<div class="keywords" style="font-size: 13px; color: #333; line-height: 1.5;">${keywords.financeSensitivity}</div>`;
+                html += '</div>';
+            }
+
+            if (keywords.hasTradeIn) {
+                hasKeywords = true;
+                html += '<div class="keyword-item" style="background: #f8f9fa; padding: 12px 14px; border-radius: 10px; border-left: 4px solid #667eea;">';
+                html += '<div class="category" style="font-size: 13px; color: #667eea; font-weight: 600; margin-bottom: 4px;">二手车置换</div>';
+                html += `<div class="keywords" style="font-size: 13px; color: #333; line-height: 1.5;">有置换需求（${keywords.tradeInInfo}）</div>`;
+                html += '</div>';
+            }
+
+            if (!hasKeywords) {
+                html += '<div style="text-align: center; padding: 20px; color: #999; font-size: 13px;">暂无补充信息</div>';
+            }
+
+            html += '</div>';
+            html += '</div>';
+
+            // 话术推荐
+            html += '<div class="result-section">';
+            html += '<h3>💬 智能话术推荐</h3>';
+
+            if (scripts.length === 0) {
+                html += '<div style="text-align: center; padding: 20px; color: #999; font-size: 14px;">暂无话术推荐</div>';
+            } else {
+                scripts.forEach(script => {
+                    html += `<div class="script-box ${script.type}">`;
+                    html += `<h4>${script.title}</h4>`;
+                    if (script.stage) {
+                        html += `<div style="font-size: 12px; color: #666; margin-bottom: 8px;">📍 ${script.stage}</div>`;
+                    }
+                    html += `<p style="white-space: pre-line;">${script.content}</p>`;
+                    html += '</div>';
+                });
+            }
+
+            // 探需完成度统计
+            const completeCount = nineQuestions.filter(q => q.status === 'complete').length;
+            const partialCount = nineQuestions.filter(q => q.status === 'partial').length;
+            const incompleteCount = nineQuestions.filter(q => q.status === 'incomplete').length;
+
+            html += '<div class="key-points" style="background: #fff3e6; margin-top: 16px;">';
+            html += '<h4>📈 探需完成度</h4>';
+            html += '<ul>';
+            html += `<li>完全探需：${completeCount}/9 项</li>`;
+            html += `<li>部分探需：${partialCount}/9 项</li>`;
+            html += `<li>待探需：${incompleteCount}/9 项</li>`;
+            if (incompleteCount > 0) {
+                html += `<li><strong>建议：</strong>重点补充 ${nineQuestions.filter(q => q.status === 'incomplete').map(q => q.label.split('.')[1].trim()).slice(0, 3).join('、')} 等信息</li>`;
+            }
+            html += '</ul>';
+            html += '</div>';
+
+            html += '</div>';
+
+            document.getElementById('resultArea').innerHTML = html;
+        }
+
+        // ========== 店长视图功能 ==========
+
+        // 处理文件上传
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+
+                    // 读取第一个sheet
+                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+
+                    // 解析并分析数据
+                    analyzeManagerData(jsonData);
+                } catch (error) {
+                    alert('Excel文件解析失败，请检查文件格式。\n\n需要包含字段：专家姓名、客户姓名、商机等级、客户描述');
+                    console.error(error);
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        // 拖拽上传
+        const uploadArea = document.getElementById('uploadArea');
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('drag-over');
+        });
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('drag-over');
+        });
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('drag-over');
+            const file = e.dataTransfer.files[0];
+            if (file) {
+                document.getElementById('excelFile').files = e.dataTransfer.files;
+                handleFileUpload({ target: { files: [file] } });
+            }
+        });
+
+        // 智能识别商机等级字段
+        function findOpportunityLevelField(row) {
+            // 可能的字段名（按优先级排序）
+            const possibleFields = [
+                '商机等级', '商机类型', '商机', '等级', '类型',
+                '商机状态', '状态', '级别', '分类'
+            ];
+
+            for (const field of possibleFields) {
+                if (row.hasOwnProperty(field) && row[field]) {
+                    return row[field];
+                }
+            }
+
+            return null;
+        }
+
+        // 智能识别商机等级
+        function parseOpportunityLevel(levelStr) {
+            if (!levelStr) return '其他';
+
+            // 转换为字符串并去除空格
+            const str = String(levelStr).trim();
+            const upperStr = str.toUpperCase();
+
+            // 精确匹配 - A/B/C/FC
+            if (upperStr === 'A' || upperStr === 'A类' || upperStr === 'A类商机' || str === 'A类') return 'A';
+            if (upperStr === 'B' || upperStr === 'B类' || upperStr === 'B类商机' || str === 'B类') return 'B';
+            if (upperStr === 'C' || upperStr === 'C类' || upperStr === 'C类商机' || str === 'C类') return 'C';
+            if (upperStr === 'FC' || upperStr === 'F' || upperStr === 'FORECAST' || str === 'FC类') return 'FC';
+
+            // 精确匹配 - 特殊状态
+            if (str === '长期' || str === '长期客户' || str === '长期跟进') return '长期';
+            if (str === '已战败' || str === '战败' || str === '失败' || str === '已失败') return '已战败';
+            if (str === '已锁单' || str === '锁单' || str === '已成交' || str === '成交') return '已锁单';
+            if (str === '类') return 'C'; // 单独的"类"字默认为C类
+
+            // 模糊匹配
+            if (upperStr.includes('FC') || upperStr.includes('FORECAST')) return 'FC';
+            if (str.includes('战败') || str.includes('失败')) return '已战败';
+            if (str.includes('锁单') || str.includes('成交')) return '已锁单';
+            if (str.includes('长期')) return '长期';
+
+            // 字母开头匹配
+            if (upperStr.startsWith('A')) return 'A';
+            if (upperStr.startsWith('B')) return 'B';
+            if (upperStr.startsWith('C')) return 'C';
+
+            // 其他情况统一归类为"其他"
+            return str || '其他';
+        }
+
+        // 分析店长数据
+        function analyzeManagerData(data) {
+            // 数据格式化：支持多种字段名
+            const customers = data.map(row => {
+                const levelRaw = findOpportunityLevelField(row);
+                return {
+                    expert: row['专家姓名'] || row['销售'] || row['顾问'] || row['销售顾问'] || '未知专家',
+                    customer: row['客户姓名'] || row['姓名'] || row['客户'] || '未知客户',
+                    level: parseOpportunityLevel(levelRaw),
+                    description: row['客户描述'] || row['描述'] || row['备注'] || row['信息'] || ''
+                };
+            });
+
+            // 分析每个客户的探需情况
+            const analyzedCustomers = customers.map(c => {
+                const probeResult = analyzeNineQuestions(c.description);
+                const completeCount = probeResult.filter(q => q.status === 'complete').length;
+                const partialCount = probeResult.filter(q => q.status === 'partial').length;
+                const incompleteCount = probeResult.filter(q => q.status === 'incomplete').length;
+                const completionRate = ((completeCount + partialCount * 0.5) / 9 * 100).toFixed(0);
+
+                return {
+                    ...c,
+                    probeResult,
+                    completeCount,
+                    partialCount,
+                    incompleteCount,
+                    completionRate: parseInt(completionRate)
+                };
+            });
+
+            // 按专家分组
+            const expertGroups = {};
+            analyzedCustomers.forEach(c => {
+                if (!expertGroups[c.expert]) {
+                    expertGroups[c.expert] = [];
+                }
+                expertGroups[c.expert].push(c);
+            });
+
+            // 保存到全局
+            managerData = {
+                customers: analyzedCustomers,
+                expertGroups
+            };
+
+            // 显示分析结果
+            displayManagerAnalysis(managerData);
+        }
+
+        // 显示店长分析结果
+        function displayManagerAnalysis(data) {
+            document.getElementById('managerAnalysis').style.display = 'block';
+
+            // 整体统计
+            const totalCustomers = data.customers.length;
+
+            // 统计所有商机类型
+            const levelStats = {};
+            data.customers.forEach(c => {
+                levelStats[c.level] = (levelStats[c.level] || 0) + 1;
+            });
+
+            // 平均探需完成度
+            const avgCompletion = Math.round(data.customers.reduce((sum, c) => sum + c.completionRate, 0) / totalCustomers);
+
+            // 动态生成统计卡片
+            let statsHtml = '';
+
+            // 总客户数卡片
+            statsHtml += '<div class="stat-card">';
+            statsHtml += '<h3>总客户数</h3>';
+            statsHtml += `<div class="value">${totalCustomers}</div>`;
+            statsHtml += '<div class="subtext">已导入客户</div>';
+            statsHtml += '</div>';
+
+            // 按商机类型优先级排序并生成卡片
+            const levelOrder = ['A', 'B', 'C', 'FC', '长期', '已锁单', '已战败'];
+            const levelLabels = {
+                'A': 'A类商机',
+                'B': 'B类商机',
+                'C': 'C类商机',
+                'FC': 'FC商机',
+                '长期': '长期客户',
+                '已锁单': '已锁单',
+                '已战败': '已战败'
+            };
+            const levelSubtext = {
+                'A': '高意向客户',
+                'B': '中意向客户',
+                'C': '低意向客户',
+                'FC': '预测商机',
+                '长期': '长期跟进',
+                '已锁单': '成交客户',
+                '已战败': '已失败'
+            };
+
+            // 先显示常规类型
+            levelOrder.forEach(level => {
+                if (levelStats[level]) {
+                    statsHtml += '<div class="stat-card">';
+                    statsHtml += `<h3>${levelLabels[level] || level}</h3>`;
+                    statsHtml += `<div class="value">${levelStats[level]}</div>`;
+                    statsHtml += `<div class="subtext">${levelSubtext[level] || '客户'}</div>`;
+                    statsHtml += '</div>';
+                }
+            });
+
+            // 显示其他类型
+            Object.keys(levelStats).forEach(level => {
+                if (!levelOrder.includes(level)) {
+                    statsHtml += '<div class="stat-card">';
+                    statsHtml += `<h3>${level}</h3>`;
+                    statsHtml += `<div class="value">${levelStats[level]}</div>`;
+                    statsHtml += '<div class="subtext">客户</div>';
+                    statsHtml += '</div>';
+                }
+            });
+
+            // 平均探需完成度卡片
+            statsHtml += '<div class="stat-card">';
+            statsHtml += '<h3>平均探需完成度</h3>';
+            statsHtml += `<div class="value">${avgCompletion}%</div>`;
+            statsHtml += '<div class="subtext">9个维度</div>';
+            statsHtml += '</div>';
+
+            // 更新统计卡片容器
+            document.querySelector('.stats-grid').innerHTML = statsHtml;
+
+            // 团队探需薄弱项分析
+            const weaknessStats = {};
+            NINE_QUESTIONS.forEach(q => {
+                weaknessStats[q.id] = {
+                    label: q.label.split('.')[1].trim(),
+                    complete: 0,
+                    incomplete: 0,
+                    partial: 0,
+                    total: totalCustomers
+                };
+            });
+
+            data.customers.forEach(c => {
+                c.probeResult.forEach(p => {
+                    if (p.status === 'complete') {
+                        weaknessStats[p.id].complete++;
+                    } else if (p.status === 'incomplete') {
+                        weaknessStats[p.id].incomplete++;
+                    } else if (p.status === 'partial') {
+                        weaknessStats[p.id].partial++;
+                    }
+                });
+            });
+
+            // 计算探需完成度并排序（完成度越低越靠前）
+            const weaknessArray = Object.values(weaknessStats).map(w => {
+                // 完成度 = (完全探需数 + 部分探需数 * 0.5) / 总数
+                const completionRate = (w.complete + w.partial * 0.5) / w.total * 100;
+                return {
+                    ...w,
+                    completionRate: completionRate
+                };
+            }).sort((a, b) => a.completionRate - b.completionRate); // 按完成度升序排序，越低越靠前
+
+            let weaknessHtml = '';
+            weaknessArray.slice(0, 5).forEach(w => {
+                const percentage = w.completionRate.toFixed(0);
+                let barClass = '';
+                // 完成度低于40%：红色（差）
+                // 完成度40-60%：橙色（中等）
+                // 完成度高于60%：蓝色（好）
+                if (percentage < 40) barClass = 'low';
+                else if (percentage < 60) barClass = 'medium';
+
+                weaknessHtml += '<div class="probe-bar">';
+                weaknessHtml += `<div class="label">${w.label}</div>`;
+                weaknessHtml += '<div class="bar-container">';
+                weaknessHtml += `<div class="bar-fill ${barClass}" style="width: ${percentage}%">`;
+                weaknessHtml += `<span class="percentage">${percentage}%</span>`;
+                weaknessHtml += '</div>';
+                weaknessHtml += '</div>';
+                weaknessHtml += '</div>';
+            });
+            document.getElementById('weaknessAnalysis').innerHTML = weaknessHtml;
+
+            // 各专家详细分析
+            let expertHtml = '';
+            let expertIndex = 0;
+            Object.entries(data.expertGroups).forEach(([expertName, customers]) => {
+                const avgRate = Math.round(customers.reduce((sum, c) => sum + c.completionRate, 0) / customers.length);
+
+                // 统计该专家的各类商机
+                const expertLevelStats = {};
+                customers.forEach(c => {
+                    expertLevelStats[c.level] = (expertLevelStats[c.level] || 0) + 1;
+                });
+
+                // 生成商机类型统计文本
+                const levelOrder = ['A', 'B', 'C', 'FC', '长期', '已锁单', '已战败'];
+                const levelEmojis = {
+                    'A': '🔴',
+                    'B': '🟠',
+                    'C': '🔵',
+                    'FC': '🟣',
+                    '长期': '🟢',
+                    '已锁单': '🟡',
+                    '已战败': '⚪'
+                };
+
+                let levelStatsText = '';
+                levelOrder.forEach(level => {
+                    if (expertLevelStats[level]) {
+                        const emoji = levelEmojis[level] || '⚫';
+                        levelStatsText += `${emoji} ${level}: ${expertLevelStats[level]} `;
+                    }
+                });
+                // 添加其他类型
+                Object.keys(expertLevelStats).forEach(level => {
+                    if (!levelOrder.includes(level)) {
+                        levelStatsText += `⚫ ${level}: ${expertLevelStats[level]} `;
+                    }
+                });
+
+                const expertId = `expert-${expertIndex}`;
+                expertIndex++;
+
+                expertHtml += '<div class="expert-card">';
+
+                // 专家头部（可点击展开/收起）
+                expertHtml += `<div class="expert-header" onclick="toggleExpertDetails('${expertId}')">`;
+                expertHtml += '<div class="expert-name">';
+                expertHtml += `<span class="expand-icon" id="${expertId}-icon">▶</span>`;
+                expertHtml += expertName;
+                expertHtml += '</div>';
+                expertHtml += '<div class="expert-stats">';
+                expertHtml += `<span>📊 探需完成度: ${avgRate}%</span>`;
+                expertHtml += `<span>👥 客户数: ${customers.length}</span>`;
+                expertHtml += `<span>${levelStatsText}</span>`;
+                expertHtml += '</div>';
+                expertHtml += '</div>';
+
+                // 详情区域（默认隐藏）
+                expertHtml += `<div class="expert-details" id="${expertId}">`;
+
+                // 计算该专家的探需完成度统计
+                const expertProbeStats = {};
+                NINE_QUESTIONS.forEach(q => {
+                    expertProbeStats[q.id] = {
+                        label: q.label.split('.')[1].trim(),
+                        question: q.question,
+                        complete: 0,
+                        incomplete: 0,
+                        partial: 0,
+                        total: customers.length
+                    };
+                });
+                customers.forEach(c => {
+                    c.probeResult.forEach(p => {
+                        if (p.status === 'complete') {
+                            expertProbeStats[p.id].complete++;
+                        } else if (p.status === 'incomplete') {
+                            expertProbeStats[p.id].incomplete++;
+                        } else if (p.status === 'partial') {
+                            expertProbeStats[p.id].partial++;
+                        }
+                    });
+                });
+
+                // 计算探需完成度并排序（完成度越低越靠前）
+                const expertProbeArray = Object.entries(expertProbeStats).map(([id, stats]) => {
+                    const completionRate = (stats.complete + stats.partial * 0.5) / stats.total * 100;
+                    return {
+                        id: id,
+                        ...stats,
+                        completionRate: completionRate
+                    };
+                }).sort((a, b) => a.completionRate - b.completionRate);
+
+                // 取前5个薄弱项
+                const topWeaknessWithRate = expertProbeArray.slice(0, 5);
+
+                if (topWeaknessWithRate.length > 0 && topWeaknessWithRate[0].completionRate < 100) {
+                    expertHtml += '<h4 style="font-size: 14px; color: #333; margin-bottom: 12px; font-weight: 600;">⚠️ 探需薄弱项分析（按完成度从低到高）</h4>';
+
+                    topWeaknessWithRate.forEach(w => {
+                        const percentage = w.completionRate.toFixed(0);
+                        let barClass = '';
+                        if (percentage < 40) barClass = 'low';
+                        else if (percentage < 60) barClass = 'medium';
+
+                        expertHtml += '<div style="margin-bottom: 20px; padding: 15px; background: #fff9f0; border-radius: 10px; border-left: 4px solid #ff9800;">';
+
+                        // 探需项名称和进度条
+                        expertHtml += '<div class="probe-bar" style="margin-bottom: 10px;">';
+                        expertHtml += `<div class="label" style="font-weight: 600; color: #333;">${w.label}</div>`;
+                        expertHtml += '<div class="bar-container">';
+                        expertHtml += `<div class="bar-fill ${barClass}" style="width: ${percentage}%">`;
+                        expertHtml += `<span class="percentage">${percentage}%</span>`;
+                        expertHtml += '</div>';
+                        expertHtml += '</div>';
+                        expertHtml += '</div>';
+
+                        // 改进建议话术
+                        expertHtml += '<div style="background: white; padding: 12px; border-radius: 8px; margin-top: 10px;">';
+                        expertHtml += '<div style="font-size: 12px; color: #ff9800; font-weight: 600; margin-bottom: 8px;">💡 改进话术建议</div>';
+
+                        // 根据不同的探需维度生成话术
+                        const improvementScripts = generateImprovementScripts(w.id, w.question);
+                        improvementScripts.forEach((script, idx) => {
+                            expertHtml += `<div style="font-size: 12px; color: #666; line-height: 1.8; margin-bottom: ${idx === improvementScripts.length - 1 ? '0' : '8px'}; padding-left: 12px; position: relative;">`;
+                            expertHtml += `<span style="position: absolute; left: 0; color: #ff9800; font-weight: bold;">${idx + 1}.</span>`;
+                            expertHtml += script;
+                            expertHtml += '</div>';
+                        });
+
+                        expertHtml += '</div>';
+                        expertHtml += '</div>';
+                    });
+                } else {
+                    expertHtml += '<div style="padding: 15px; text-align: center; color: #4caf50; font-size: 13px; background: #f1f8f4; border-radius: 8px; margin-bottom: 15px;">';
+                    expertHtml += '✓ 该专家探需完成度良好，无明显薄弱项';
+                    expertHtml += '</div>';
+                }
+
+                // 客户列表
+                expertHtml += '<h4 style="font-size: 14px; color: #333; margin: 20px 0 12px; font-weight: 600;">👥 客户详情</h4>';
+                expertHtml += '<table class="customer-table">';
+                expertHtml += '<thead><tr><th>客户姓名</th><th>商机等级</th><th>探需完成度</th><th>探需不到位项</th></tr></thead>';
+                expertHtml += '<tbody>';
+                customers.forEach(c => {
+                    const issues = c.probeResult.filter(p => p.status === 'incomplete' || p.status === 'partial');
+                    expertHtml += '<tr>';
+                    expertHtml += `<td>${c.customer}</td>`;
+                    expertHtml += `<td><span class="level-badge ${c.level}">${c.level}类</span></td>`;
+                    expertHtml += `<td>${c.completionRate}% (${c.completeCount}/9)</td>`;
+                    expertHtml += '<td>';
+                    if (issues.length === 0) {
+                        expertHtml += '<span style="color: #4caf50; font-size: 12px;">✓ 探需完整</span>';
+                    } else {
+                        issues.forEach(issue => {
+                            const badgeClass = issue.status === 'incomplete' ? 'critical' : 'warning';
+                            expertHtml += `<span class="issue-badge ${badgeClass}">${issue.label.split('.')[1].trim()}</span>`;
+                        });
+                    }
+                    expertHtml += '</td>';
+                    expertHtml += '</tr>';
+                });
+                expertHtml += '</tbody></table>';
+
+                expertHtml += '</div>'; // 关闭 expert-details
+                expertHtml += '</div>'; // 关闭 expert-card
+            });
+
+            document.getElementById('expertList').innerHTML = expertHtml;
+        }
+
+        // 生成探需改进话术建议（根据具体探需维度）
+        function generateImprovementScripts(probeId, question) {
+            const scripts = {
+                'energy_intention': [
+                    '您这边是打算买增程还是纯电呢？增程的话没有续航焦虑，纯电的话用车成本更低，各有优势',
+                    '咱们理想有增程和纯电两种，您平时用车是市区多还是经常跑长途？这样我能帮您推荐更合适的能源形式'
+                ],
+                'current_car': [
+                    '您现在开的什么车呀？是打算置换还是增购第二辆车呢？了解一下能更好地给您推荐',
+                    '想了解一下您目前的用车情况，家里现在有车吗？是什么品牌的？打算卖掉换新车还是再买一辆？'
+                ],
+                'usage_scenario': [
+                    '您平时主要用车是上下班通勤，还是周末带家人出去玩比较多？',
+                    '想了解一下您的用车场景，是市区为主还是经常跑长途？有没有接送孩子、自驾游这些需求？'
+                ],
+                'budget': [
+                    '您这边购车预算大概在什么范围呢？这样我能给您推荐最合适的车型配置',
+                    '想了解一下您的预算区间，大概多少万左右？咱们理想有不同价位的车型可以选择'
+                ],
+                'family_structure': [
+                    '您家里几口人呀？有老人和孩子吗？这个对选5座还是6座车型很重要',
+                    '了解一下您的家庭情况，平时用车主要是几个人？有没有带老人孩子出行的需求？'
+                ],
+                'decision_maker': [
+                    '这次买车主要是您自己决定，还是需要和家人商量一下？我好安排后续的试驾和讲解',
+                    '想确认一下，购车决策是您一个人做主，还是需要爱人或者父母一起参与？咱们可以一起约个时间详细聊聊'
+                ],
+                'key_features': [
+                    '您买车最看重哪些方面呢？是续航、智能驾驶、空间舒适性，还是安全配置？',
+                    '想了解一下您最关注的功能点，比如续航里程、智能驾驶、空间大小、充电速度这些，您优先考虑哪些？'
+                ],
+                'competitor_comparison': [
+                    '您最近还在看哪些品牌的车呀？蔚来、小鹏、问界这些有在对比吗？我可以帮您详细分析一下差异',
+                    '除了咱们理想，您还有在看其他品牌吗？了解一下能帮您做更准确的对比分析'
+                ],
+                'purchase_timing': [
+                    '您这边计划什么时候用上车呢？是比较急还是可以再看看？了解一下好给您安排试驾和交付',
+                    '想确认一下您的购车时间，是近期就要，还是3个月、半年内？这样我能帮您规划好试驾和订车节奏'
+                ]
+            };
+
+            return scripts[probeId] || [
+                '建议多询问客户具体需求，了解更多细节信息',
+                '可以用开放式问题引导客户，让客户多说说自己的想法和顾虑'
+            ];
+        }
+
+        // 切换专家详情显示/隐藏
+        function toggleExpertDetails(expertId) {
+            const detailsDiv = document.getElementById(expertId);
+            const icon = document.getElementById(expertId + '-icon');
+
+            if (detailsDiv.classList.contains('show')) {
+                detailsDiv.classList.remove('show');
+                icon.classList.remove('expanded');
+            } else {
+                detailsDiv.classList.add('show');
+                icon.classList.add('expanded');
+            }
+        }
+    </script>
+</body>
+</html>
